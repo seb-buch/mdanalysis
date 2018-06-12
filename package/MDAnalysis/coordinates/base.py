@@ -858,6 +858,88 @@ class Timestep(object):
         del self.data['time']
 
 
+class FrameIteratorBase(object):
+    def __init__(self, trajectory):
+        self._trajectory = trajectory
+
+    def __len__(self):
+        raise NotImplementedError()
+
+    def write(self, name, writer):
+        raise NotImplementedError()
+
+    @property
+    def trajectory(self):
+        return self._trajectory
+
+    @trajectory.setter
+    def trajectory(self):
+        return TypeError('trajectory is a read only attribute.')
+
+
+class FrameIteratorSliced(FrameIteratorBase):
+    def __init__(self, trajectory, frames):
+        super(FrameIteratorSliced, self).__init__(trajectory)
+        start, stop, step = trajectory.check_slice_indices(
+            frames.start, frames.stop, frames.step,
+        )
+        self._range = range(start, stop, step)
+
+    def __len__(self):
+        return len(self.range)
+    
+    def __iter__(self):
+        for i in self.range:
+            yield self.trajectory._read_frame_with_aux(i)
+        self.trajectory.rewind()
+
+    @property
+    def range(self):
+        return self._range
+
+    @range.setter
+    def range(self):
+        return TypeError('range is a read only attribute.')
+
+
+class FrameIteratorAll(FrameIteratorBase):
+    def __init__(self, trajectory):
+        super(FrameIteratorAll, self).__init__(trajectory)
+
+    def __len__(self):
+        return self.trajectory.n_frames
+
+    def __iter__(self):
+        return iter(self.trajectory)
+
+
+class FrameIteratorIndices(FrameIteratorBase):
+    def __init__(self, trajectory, frames):
+        super(FrameIteratorIndices, self).__init__(trajectory)
+        self._frames = []
+        for frame in frames:
+            if not isinstance(frame, numbers.Integral):
+                raise TypeError("Frames indices must be integers.")
+            frame = trajectory._apply_limits(frame)
+            self._frames.append(frame)
+        self._frames = tuple(self._frames)
+
+    def __len__(self):
+        return len(self.frames)
+
+    def __iter__(self):
+        for frame in self.frames:
+            yield self.trajectory._read_frame_with_aux(frame)
+
+    @property
+    def frames(self):
+        return self._frames
+
+    @frames.setter
+    def frames(self):
+        raise TypeError('frames is a read only attribute.')
+
+
 class IOBase(object):
     """Base class bundling common functionality for trajectory I/O.
 
@@ -1294,6 +1376,14 @@ class ProtoReader(six.with_metaclass(_Readermeta, IOBase)):
         """
         pass
 
+    def _apply_limits(self, frame):
+        if frame < 0:
+            frame += len(self)
+        if frame < 0 or frame >= len(self):
+            raise IndexError("Index {} exceeds length of trajectory ({})."
+                             "".format(frame, len(self)))
+        return frame
+
     def __getitem__(self, frame):
         """Return the Timestep corresponding to *frame*.
 
@@ -1307,17 +1397,8 @@ class ProtoReader(six.with_metaclass(_Readermeta, IOBase)):
         ----
         *frame* is a 0-based frame index.
         """
-
-        def apply_limits(frame):
-            if frame < 0:
-                frame += len(self)
-            if frame < 0 or frame >= len(self):
-                raise IndexError("Index {} exceeds length of trajectory ({})."
-                                 "".format(frame, len(self)))
-            return frame
-
         if isinstance(frame, numbers.Integral):
-            frame = apply_limits(frame)
+            frame = self._apply_limits(frame)
             return self._read_frame_with_aux(frame)
         elif isinstance(frame, (list, np.ndarray)):
             if isinstance(frame[0], (bool, np.bool_)):
@@ -1326,20 +1407,23 @@ class ProtoReader(six.with_metaclass(_Readermeta, IOBase)):
                 # Convert bool array to int array
                 frame = np.arange(len(self))[frame]
 
-            def listiter(frames):
-                for f in frames:
-                    if not isinstance(f, numbers.Integral):
-                        raise TypeError("Frames indices must be integers")
-                    yield self._read_frame_with_aux(apply_limits(f))
-
-            return listiter(frame)
+            #def listiter(frames):
+            #    for f in frames:
+            #        if not isinstance(f, numbers.Integral):
+            #            raise TypeError("Frames indices must be integers")
+            #        yield self._read_frame_with_aux(apply_limits(f))
+            #
+            #return listiter(frame)
+            return FrameIteratorIndices(self, frame)
         elif isinstance(frame, slice):
             start, stop, step = self.check_slice_indices(
                 frame.start, frame.stop, frame.step)
             if start == 0 and stop == len(self) and step == 1:
-                return self.__iter__()
+                #return self.__iter__()
+                return FrameIteratorAll(self)
             else:
-                return self._sliced_iter(start, stop, step)
+                #return self._sliced_iter(start, stop, step)
+                return FrameIteratorSliced(self, frame)
         else:
             raise TypeError("Trajectories must be an indexed using an integer,"
                             " slice or list of indices")
