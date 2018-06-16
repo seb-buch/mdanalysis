@@ -893,6 +893,21 @@ class FrameIteratorSliced(FrameIteratorBase):
             yield self.trajectory._read_frame_with_aux(i)
         self.trajectory.rewind()
 
+    def __getitem__(self, frame):
+        if isinstance(frame, numbers.Integral):
+            frame = self.frames[frame]
+            return self._read_frame_with_aux(frame)
+        elif isinstance(frame, slice):
+            new_range = self.range[frame]
+            start = new_range.start
+            stop = new_range.stop
+            step = new_range.step
+            new_slice = slice(start, stop,step)
+            return FrameIteratorSliced(self.trajectory, new_slice)
+        else:
+            frames = np.array(list(self.range))[frame]
+            return FrameIteratorIndices(self.trajectory, frames)
+
     @property
     def range(self):
         return self._range
@@ -912,6 +927,9 @@ class FrameIteratorAll(FrameIteratorBase):
     def __iter__(self):
         return iter(self.trajectory)
 
+    def __getitem__(self, frame):
+        return self.trajectory[frame]
+
 
 class FrameIteratorIndices(FrameIteratorBase):
     def __init__(self, trajectory, frames):
@@ -930,6 +948,14 @@ class FrameIteratorIndices(FrameIteratorBase):
     def __iter__(self):
         for frame in self.frames:
             yield self.trajectory._read_frame_with_aux(frame)
+
+    def __getitem__(self, frame):
+        if isinstance(frame, numbers.Integral):
+            frame = self.frames[frame]
+            return self._read_frame_with_aux(frame)
+        else:
+            frames = np.array(self.frames)[frame]
+            return FrameIteratorIndices(self.trajectory, frames)
 
     @property
     def frames(self):
