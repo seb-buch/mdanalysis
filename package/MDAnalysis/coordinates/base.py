@@ -872,10 +872,6 @@ class FrameIteratorBase(object):
     def trajectory(self):
         return self._trajectory
 
-    @trajectory.setter
-    def trajectory(self):
-        return TypeError('trajectory is a read only attribute.')
-
 
 class FrameIteratorSliced(FrameIteratorBase):
     def __init__(self, trajectory, frames):
@@ -921,10 +917,6 @@ class FrameIteratorSliced(FrameIteratorBase):
     def range(self):
         return self._range
 
-    @range.setter
-    def range(self):
-        return TypeError('range is a read only attribute.')
-
 
 class FrameIteratorAll(FrameIteratorBase):
     def __init__(self, trajectory):
@@ -969,10 +961,6 @@ class FrameIteratorIndices(FrameIteratorBase):
     @property
     def frames(self):
         return self._frames
-
-    @frames.setter
-    def frames(self):
-        raise TypeError('frames is a read only attribute.')
 
 
 class IOBase(object):
