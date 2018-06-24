@@ -859,6 +859,22 @@ class Timestep(object):
 
 
 class FrameIteratorBase(object):
+    """
+    Base iterable over the frames of a trajectory.
+
+    A frame iterable has a length that can be accessed with the :func:`len`
+    function, and can be indexed similarly to a full trajectory. When indexed,
+    indices are resolved relative to the iterable and not relative to the
+    trajectory.
+
+    Parameters
+    ----------
+    trajectory: ProtoReader
+        The trajectory over which to iterate.
+
+    .. versionadded:: 0.19.0
+
+    """
     def __init__(self, trajectory):
         self._trajectory = trajectory
 
@@ -874,6 +890,23 @@ class FrameIteratorBase(object):
 
 
 class FrameIteratorSliced(FrameIteratorBase):
+    """
+    Iterable over the frames of a trajectory on the basis of a slice.
+
+    Parameters
+    ----------
+    trajectory: ProtoReader
+        The trajectory over which to iterate.
+    frames: slice
+        A slice to select the frames of interest.
+
+    See Also
+    --------
+    FrameIteratorBase
+
+    .. versionadded:: 0.19.0
+
+    """
     def __init__(self, trajectory, frames):
         super(FrameIteratorSliced, self).__init__(trajectory)
         start, stop, step = trajectory.check_slice_indices(
@@ -919,6 +952,21 @@ class FrameIteratorSliced(FrameIteratorBase):
 
 
 class FrameIteratorAll(FrameIteratorBase):
+    """
+    Iterable over all the frames of a trajectory.
+
+    Parameters
+    ----------
+    trajectory: ProtoReader
+        The trajectory over which to iterate.
+
+    See Also
+    --------
+    FrameIteratorBase
+
+    .. versionadded:: 0.19.0
+
+    """
     def __init__(self, trajectory):
         super(FrameIteratorAll, self).__init__(trajectory)
 
@@ -933,6 +981,20 @@ class FrameIteratorAll(FrameIteratorBase):
 
 
 class FrameIteratorIndices(FrameIteratorBase):
+    """
+    Iterable over the frames of a trajectory listed in a sequence of indices.
+
+    Parameters
+    ----------
+    trajectory: ProtoReader
+        The trajectory over which to iterate.
+    frames: sequence
+        A sequence of indices.
+
+    See Also
+    --------
+    FrameIteratorBase
+    """
     def __init__(self, trajectory, frames):
         super(FrameIteratorIndices, self).__init__(trajectory)
         self._frames = []
