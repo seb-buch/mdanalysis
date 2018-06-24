@@ -898,11 +898,20 @@ class FrameIteratorSliced(FrameIteratorBase):
             frame = self.frames[frame]
             return self._read_frame_with_aux(frame)
         elif isinstance(frame, slice):
-            new_range = self.range[frame]
-            start = new_range.start
-            stop = new_range.stop
-            step = new_range.step
-            new_slice = slice(start, stop,step)
+            start = self.range.start + (frame.start or 0) * self.range.step
+            if frame.stop is None:
+                stop = self.range.stop
+            else:
+                stop = self.range.start + (frame.stop or 0) * self.range.step
+            step = (frame.step or 1) * self.range.step
+
+            if step > 0:
+                start = max(0, start)
+            else:
+                stop = max(0, stop)
+            
+            new_slice = slice(start, stop, step)
+            print(self.range, frame, new_slice, self.trajectory.check_slice_indices(start, stop, step))
             return FrameIteratorSliced(self.trajectory, new_slice)
         else:
             frames = np.array(list(self.range))[frame]
