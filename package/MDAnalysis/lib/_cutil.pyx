@@ -23,7 +23,7 @@
 
 import cython
 import numpy as np
-cimport numpy as np
+
 from libcpp.set cimport set as cset
 from libcpp.map cimport map as cmap
 
@@ -32,7 +32,7 @@ __all__ = ['unique_int_1d', '_is_contiguous']
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
-def unique_int_1d(np.ndarray[np.int64_t, ndim=1] values):
+def unique_int_1d(long[:] values):
     """
     Find the unique elements of a 1D array of integers.
 
@@ -40,7 +40,7 @@ def unique_int_1d(np.ndarray[np.int64_t, ndim=1] values):
 
     Parameters
     ----------
-    values: np.ndarray
+    values: np.ndarray of type int64
         1D array of int in which to find the unique values.
 
     Returns
@@ -53,7 +53,7 @@ def unique_int_1d(np.ndarray[np.int64_t, ndim=1] values):
     cdef int i = 0
     cdef int j = 0
     cdef int n_values = values.shape[0]
-    cdef np.ndarray[np.int64_t, ndim=1] result = np.empty(n_values, dtype=np.int64)
+    cdef long[:] result = np.empty(n_values, dtype=np.int64)
 
     if n_values == 0:
         return result
